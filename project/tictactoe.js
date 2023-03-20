@@ -1,4 +1,3 @@
-// tictactoe.js
 function resetGame() {
     const inputs = document.querySelectorAll('input[type="text"]');
     for (const input of inputs) {
@@ -6,17 +5,24 @@ function resetGame() {
     }
     const resultMessage = document.getElementById('resultMessage');
     resultMessage.style.display = 'none';
+
+    const playAgainButton = document.getElementById('playAgainButton');
+    playAgainButton.style.display = 'none';
 }
 
+
 function validateForm() {
+    const playAgainButton = document.getElementById('playAgainButton');
+    playAgainButton.style.display = 'none';
+    
     const inputs = document.querySelectorAll('input[type="text"]');
     let xCount = 0;
     let oCount = 0;
     let emptyCount = 0;
     for (const input of inputs) {
-        if (input.value === 'x') {
+        if (input.value.trim().toLowerCase() === 'x') {
             xCount++;
-        } else if (input.value === 'o') {
+        } else if (input.value.trim().toLowerCase() === 'o') {
             oCount++;
         } else {
             emptyCount++;
@@ -40,3 +46,4 @@ function validateForm() {
 
     return true;
 }
+

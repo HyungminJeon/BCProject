@@ -3,9 +3,14 @@
 <?php
 require "functions.php";
 session_start();
+if (!isset($_SESSION["username"])) {
+    header("Location: login.php");
+    exit();
+}
 $username = $_SESSION["username"];
 $winner = 'n';
 $box = array('','','','','','','','','');
+
 
 
 function placeO(&$box) {
@@ -51,14 +56,14 @@ if (isset($_POST['submit'])) {
     if (checkWinner($box, 'x')) {
         $winner = 'x';
         $response = saveTicTacToeResult('Tic Tac Toe', $username, 1,0,0);
-        updateGameStatistics('Tic Tac Toe', $username);
+        tictactoeUpdateGameStatistics('Tic Tac Toe', $username);
     } else {
         placeO($box);
 
         if (checkWinner($box, 'o')) {
             $winner = 'o';
             $response = saveTicTacToeResult('Tic Tac Toe', $username, 0,1,0);
-            updateGameStatistics('Tic Tac Toe', $username);
+            tictactoeUpdateGameStatistics('Tic Tac Toe', $username);
         } elseif (!in_array('', $box)) {
             $winner = 't';
             $response = saveTicTacToeResult('Tic Tac Toe', $username, 0,0,1);
@@ -74,6 +79,7 @@ if (isset($_POST['submit'])) {
 <head>
     <title>Tic Tac Toe</title>
     <script src="tictactoe.js"></script>
+    
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -82,6 +88,10 @@ if (isset($_POST['submit'])) {
 
         h1 {
             font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .button-container {
             margin-bottom: 20px;
         }
 
@@ -135,44 +145,130 @@ if (isset($_POST['submit'])) {
             align-items: center;
             height: 100vh;
         }
+
+
+         /* styles for the modal */
+
+        .instructions {
+            font-size: 18px;
+            margin-bottom: 20px;
+            line-height: 1.4;
+            max-width: 400px;
+            text-align: left;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 10px;
+            margin-bottom: 20px;
+        }
+
+         .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
     <div class="center">
         <div>
             <h1>Tic Tac Toe</h1>
+
+            <div class="button-container">
+                <button id="instructionBtn">How to play?</button>
+            </div>
+
+
+            <!-- Add this modal with Tic Tac Toe instructions -->
+            <div id="instructionModal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Tic Tac Toe Instructions</h2>
+                    <p>1. Place an 'x' in any empty cell on the game board.</p>
+                    <p>2. Click the 'Play' button to submit your move.</p>
+                    <p>3. The computer will automatically place an 'o' in response.</p>
+                    <p>4. Take turns with the computer placing 'x' and 'o' until there is a winner or a tie.</p>
+                    <p>5. To start a new game, click the 'Play Again' button.</p>
+                </div>
+            </div>
+            
+        
             <form method="post" action="" onsubmit="return validateForm();">
                 <div class="grid-container">
                     <?php for ($i = 0; $i < 9; $i++): ?>
                         <input type="text" name="box<?= $i ?>" value="<?= $box[$i] ?>" maxlength="1">
                     <?php endfor; ?>
                 </div>
-                <div><input type="submit" name="submit" value="Play"></div>
-                
+                <div>
+                <input type="submit" id="play" name="submit" value="Play"></div>
                 <?php 
 			if($response == "success"){
-				?>
-					<p class="success">(Your registration was successful)</p>
-				<?php
 			}else{
 				?>
 					<p class="error"><?php echo $response; ?></p>
 				<?php
 			}
 		?>
-
             </form>
             
             <?php if ($winner != 'n'): ?>
             <h2 id="resultMessage">
-                <?= $winner == 't' ? 'It\'s a tie!' : ($winner == 'x' ? $username . ' wins!' : 'Computer wins!') ?>
+                <?= $winner == 't' ? 'It\'s a tie!' : ($winner == 'x' ? 'You win!' : 'Computer wins!') ?>
             </h2>
-            <button onclick="resetGame();">Play Again</button>
+            <button id= "playAgainButton" onclick="resetGame();">Play Again</button>
             <?php endif; ?>
 
             <form action="dashboard.php">
-                    <button type="submit">Go to Dashboard</button>
+                <button type="submit">Go to Dashboard</button>
             </form>
+            
+
+            <script>
+                // handle the modal behavior
+                const instructionBtn = document.getElementById("instructionBtn");
+                const instructionModal = document.getElementById("instructionModal");
+                const closeBtn = document.querySelector(".close");
+
+                instructionBtn.onclick = function () {
+                    instructionModal.style.display = "block";
+                }
+
+                closeBtn.onclick = function () {
+                    instructionModal.style.display = "none";
+                }
+
+                window.onclick = function (event) {
+                    if (event.target == instructionModal) {
+                        instructionModal.style.display = "none";
+                    }
+                }
+            </script>
+
         </div>
     </div>
 </body>

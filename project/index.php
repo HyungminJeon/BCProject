@@ -3,22 +3,6 @@
 	if(isset($_POST['submit'])){
 		$response = registerUser($_POST['email'], $_POST['username'], $_POST['password'], $_POST['confirm-password']);
 	}
-
-	// Call the getUsersData() function to get the data from the Users table
-	if(isset($_POST['submit'])){
-		$data = getUsersData();
-
-		// Display the data in a table
-		if(is_array($data)) {
-			echo "<table><thead><tr><th>Email</th><th>Username</th><th>Password</th></tr></thead><tbody>";
-			foreach($data as $row) {
-				echo "<tr><td>".$row['email']."</td><td>".$row['username']."</td><td>".$row['password']."</td></tr>";
-			}
-			echo "</tbody></table>";
-		} else {
-			echo $data;
-		}
-	}
 ?>
 <!DOCTYPE html>
 <html lang="en">

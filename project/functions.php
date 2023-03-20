@@ -152,22 +152,170 @@
 		}
 	}
 
-	function updateGameStatistics($gamename, $username) {
+	function tictactoeUpdateGameStatistics($gamename, $username) {
 		$pdo = connect();
-		
+	
 		$stmt = $pdo->prepare('SELECT COUNT(*) AS total, SUM(win) AS wins, SUM(lose) AS loses FROM Tictactoe WHERE gamename = ? AND username = ?');
 		$stmt->execute([$gamename, $username]);
 		$result = $stmt->fetch(PDO::FETCH_ASSOC);
 		$winrate = $result['total'] > 0 ? $result['wins'] / $result['total'] : 0;
 		$loserate = $result['total'] > 0 ? $result['loses'] / $result['total'] : 0;
-		
-		$stmt = $pdo->prepare('INSERT INTO GameStatistics (gamename, username, winrate, loserate) 
-								VALUES (?, ?, ?, ?) 
-								ON CONFLICT(username) DO UPDATE SET 
-									winrate=EXCLUDED.winrate, 
-									loserate=EXCLUDED.loserate 
-								WHERE winrate != EXCLUDED.winrate OR loserate != EXCLUDED.loserate');
-		$stmt->execute([$gamename, $username, $winrate, $loserate]);
+	
+		$stmt = $pdo->prepare('SELECT winrate, loserate FROM GameStatistics WHERE gamename = ? AND username = ?');
+		$stmt->execute([$gamename, $username]);
+		$currentStats = $stmt->fetch(PDO::FETCH_ASSOC);
+	
+		if (!$currentStats) {
+			$stmt = $pdo->prepare('INSERT INTO GameStatistics (gamename, username, winrate, loserate) VALUES (?, ?, ?, ?)');
+			$stmt->execute([$gamename, $username, $winrate, $loserate]);
+		} elseif ($currentStats['winrate'] != $winrate || $currentStats['loserate'] != $loserate) {
+			$stmt = $pdo->prepare('UPDATE GameStatistics SET winrate = ?, loserate = ? WHERE gamename = ? AND username = ?');
+			$stmt->execute([$winrate, $loserate, $gamename, $username]);
+		}
+	}
+
+	function fetch_tictactoe_ranking() {
+		$pdo = connect();
+	
+		$sql = "SELECT username, winrate, loserate FROM GameStatistics WHERE gamename = 'Tic Tac Toe' ORDER BY winrate DESC LIMIT 10";
+		$stmt = $pdo->prepare($sql);
+		$stmt->execute();
+		$data = $stmt->fetchAll();
+	
+		$users = [];
+		foreach ($data as $row) {
+			$users[] = [
+				"username" => $row["username"],
+				"winrate" => round($row["winrate"] * 100, 2) . "%",
+				"loserate" => round($row["loserate"] * 100, 2) . "%"
+			];
+		}
+	
+		return $users;
+	}
+
+	function user_fetch_tictactoe_ranking($username) {
+		$pdo = connect();
+	
+		$sql = "SELECT username, winrate, loserate FROM GameStatistics WHERE gamename = 'Tic Tac Toe' AND username = ?";
+		$stmt = $pdo->prepare($sql);
+		$stmt->execute([$username]);
+		$data = $stmt->fetchAll();
+
+		$rank_sql = "SELECT COUNT(*) + 1 AS rank
+		FROM GameStatistics
+		WHERE gamename = 'Tic Tac Toe' AND winrate > (
+		  SELECT winrate
+		  FROM GameStatistics
+		  WHERE gamename = 'Tic Tac Toe' AND username = ?
+		);";
+		$rank_stmt = $pdo->prepare($rank_sql);
+		$rank_stmt->execute([$username]);
+		$rank_data = $rank_stmt->fetch();
+
+		$user = [];
+		foreach ($data as $row) {
+        $user[] = [
+            "username" => $row["username"],
+            "winrate" => round($row["winrate"] * 100, 2) . "%",
+            "loserate" => round($row["loserate"] * 100, 2) . "%",
+            "rank" => $rank_data["rank"]
+        ];
+    }
+
+    return $user;
+	}
+
+
+	function saveRockPaperScissorsResult($gameName, $username, $win, $lose, $tie) {
+		$pdo = connect();
+	
+		$stmt = $pdo->prepare('INSERT INTO RockPaperScissors(gamename, username, win, lose, tie, time) VALUES(?,?,?,?,?,?)');
+		$stmt->execute([$gameName, $username, $win, $lose, $tie, date("Y-m-d H:i:s")]);
+	
+		if($stmt->rowCount() != 1){
+			$error = $stmt->errorInfo();
+			$error_date = date("F j, Y, g:i a");
+			$message = "{$error[2]} | {$error_date} \r\n";
+			file_put_contents("db-log.txt", $message, FILE_APPEND);
+			return "An error occurred. Please try again";
+		}else{
+			return "success";			
+		}
+	}
+
+	function rockPaperScissorsUpdateGameStatistics($gamename, $username) {
+		$pdo = connect();
+	
+		$stmt = $pdo->prepare('SELECT COUNT(*) AS total, SUM(win) AS wins, SUM(lose) AS loses FROM RockPaperScissors WHERE gamename = ? AND username = ?');
+		$stmt->execute([$gamename, $username]);
+		$result = $stmt->fetch(PDO::FETCH_ASSOC);
+		$winrate = $result['total'] > 0 ? $result['wins'] / $result['total'] : 0;
+		$loserate = $result['total'] > 0 ? $result['loses'] / $result['total'] : 0;
+	
+		$stmt = $pdo->prepare('SELECT winrate, loserate FROM GameStatistics WHERE gamename = ? AND username = ?');
+		$stmt->execute([$gamename, $username]);
+		$currentStats = $stmt->fetch(PDO::FETCH_ASSOC);
+	
+		if (!$currentStats) {
+			$stmt = $pdo->prepare('INSERT INTO GameStatistics (gamename, username, winrate, loserate) VALUES (?, ?, ?, ?)');
+			$stmt->execute([$gamename, $username, $winrate, $loserate]);
+		} elseif ($currentStats['winrate'] != $winrate || $currentStats['loserate'] != $loserate) {
+			$stmt = $pdo->prepare('UPDATE GameStatistics SET winrate = ?, loserate = ? WHERE gamename = ? AND username = ?');
+			$stmt->execute([$winrate, $loserate, $gamename, $username]);
+		}
+	}
+
+
+	function fetch_rockPaperScissors_ranking() {
+		$pdo = connect();
+	
+		$sql = "SELECT username, winrate, loserate FROM GameStatistics WHERE gamename = 'Rock Paper Scissors' ORDER BY winrate DESC LIMIT 10";
+		$stmt = $pdo->prepare($sql);
+		$stmt->execute();
+		$data = $stmt->fetchAll();
+	
+		$users = [];
+		foreach ($data as $row) {
+			$users[] = [
+				"username" => $row["username"],
+				"winrate" => round($row["winrate"] * 100, 2) . "%",
+				"loserate" => round($row["loserate"] * 100, 2) . "%"
+			];
+		}
+	
+		return $users;
+	}
+
+	function user_fetch_rockPaperScissors_ranking($username) {
+		$pdo = connect();
+	
+		$sql = "SELECT username, winrate, loserate FROM GameStatistics WHERE gamename = 'Rock Paper Scissors' AND username = ?";
+		$stmt = $pdo->prepare($sql);
+		$stmt->execute([$username]);
+		$data = $stmt->fetchAll();
+
+		$rank_sql = "SELECT COUNT(*) + 1 AS rank
+		FROM GameStatistics
+		WHERE gamename = 'Rock Paper Scissors' AND winrate > (
+		  SELECT winrate
+		  FROM GameStatistics
+		  WHERE gamename = 'Rock Paper Scissors' AND username = ?
+		);";
+		$rank_stmt = $pdo->prepare($rank_sql);
+		$rank_stmt->execute([$username]);
+		$rank_data = $rank_stmt->fetch();
+
+		$user = [];
+		foreach ($data as $row) {
+        $user[] = [
+            "username" => $row["username"],
+            "winrate" => round($row["winrate"] * 100, 2) . "%",
+            "loserate" => round($row["loserate"] * 100, 2) . "%",
+            "rank" => $rank_data["rank"]
+        ];
+    }
+		return $user;
 	}
 
 	function logoutUser(){
@@ -175,4 +323,3 @@
 		header("location: login.php");
 		exit();
 	}
-	
